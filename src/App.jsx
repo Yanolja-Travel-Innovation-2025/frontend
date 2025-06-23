@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Box, CssBaseline, AppBar, Toolbar, Typography, BottomNavigation, BottomNavigationAction, Paper, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
-import axios from 'axios';
+import api from './api/axios';
 import { jwtDecode } from 'jwt-decode';
 
 import HomePage from './pages/HomePage';
@@ -62,12 +62,12 @@ function App() {
       const password = 'test1234';
       // 회원가입 먼저 시도(이미 가입된 경우 무시)
       try {
-        await axios.post('http://localhost:4000/api/auth/register', { email, password, nickname: inputName });
+        await api.post('/auth/register', { email, password, nickname: inputName });
       } catch (e) {
         // 이미 가입된 경우 무시
       }
       // 로그인 시도
-      const res = await axios.post('http://localhost:4000/api/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email, password });
       localStorage.setItem('token', res.data.token);
       setNickname(res.data.user.nickname);
       setLoggedIn(true);
