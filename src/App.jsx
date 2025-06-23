@@ -4,7 +4,7 @@ import { Box, CssBaseline, AppBar, Toolbar, Typography, BottomNavigation, Bottom
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
 import axios from 'axios';
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 import HomePage from './pages/HomePage';
 import MyPage from './pages/MyPage';
