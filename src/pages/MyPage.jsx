@@ -86,6 +86,16 @@ function MyPage() {
       return;
     }
     
+    if (isNaN(form.discountRate) || form.discountRate <= 0 || form.discountRate > 100) {
+      setFormError('할인율은 1~100 사이의 숫자여야 합니다.');
+      return;
+    }
+    
+    if (isNaN(form.minimumBadges) || form.minimumBadges < 0) {
+      setFormError('최소 배지 개수는 0 이상의 숫자여야 합니다.');
+      return;
+    }
+    
     const result = await addPartner({
       name: form.name,
       category: form.category,

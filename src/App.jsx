@@ -9,6 +9,7 @@ import MyPage from './pages/MyPage';
 import { BadgeProvider } from './BadgeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PartnerProvider } from './contexts/PartnerContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import AuthDialog from './components/AuthDialog';
 
 function AppContent() {
@@ -96,11 +97,13 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <BadgeProvider>
-        <PartnerProvider>
-          <AppContent />
-        </PartnerProvider>
-      </BadgeProvider>
+      <NotificationProvider>
+        <BadgeProvider>
+          <PartnerProvider>
+            <AppContent />
+          </PartnerProvider>
+        </BadgeProvider>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

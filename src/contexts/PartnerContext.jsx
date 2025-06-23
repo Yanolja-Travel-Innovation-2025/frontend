@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../api/axios';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationContext';
 
 const PartnerContext = createContext();
 
 export function PartnerProvider({ children }) {
   const { isLoggedIn } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,7 +19,9 @@ export function PartnerProvider({ children }) {
       const response = await api.get('/partner');
       setPartners(response.data);
     } catch (err) {
-      setError('제휴점 목록을 불러오는데 실패했습니다.');
+      const message = '제휴점 목록을 불러오는데 실패했습니다.';
+      setError(message);
+      showError(message);
       console.error('제휴점 목록 로드 에러:', err);
     } finally {
       setLoading(false);
@@ -35,10 +39,12 @@ export function PartnerProvider({ children }) {
       const response = await api.post('/partner', partnerData);
       // 성공 시 목록 다시 불러오기
       await fetchPartners();
+      showSuccess('제휴점이 성공적으로 등록되었습니다!');
       return { success: true, partner: response.data.partner };
     } catch (err) {
       const message = err.response?.data?.message || '제휴점 등록에 실패했습니다.';
       setError(message);
+      showError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
@@ -56,10 +62,12 @@ export function PartnerProvider({ children }) {
       await api.delete(`/partner/${partnerId}`);
       // 성공 시 목록 다시 불러오기
       await fetchPartners();
+      showSuccess('제휴점이 성공적으로 삭제되었습니다.');
       return { success: true };
     } catch (err) {
       const message = err.response?.data?.message || '제휴점 삭제에 실패했습니다.';
       setError(message);
+      showError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
@@ -77,10 +85,12 @@ export function PartnerProvider({ children }) {
       const response = await api.patch(`/partner/${partnerId}`, updateData);
       // 성공 시 목록 다시 불러오기
       await fetchPartners();
+      showSuccess('제휴점 정보가 성공적으로 수정되었습니다.');
       return { success: true, partner: response.data.partner };
     } catch (err) {
       const message = err.response?.data?.message || '제휴점 수정에 실패했습니다.';
       setError(message);
+      showError(message);
       return { success: false, message };
     } finally {
       setLoading(false);

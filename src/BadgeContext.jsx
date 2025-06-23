@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from './api/axios';
 import { useAuth } from './contexts/AuthContext';
+import { useNotification } from './contexts/NotificationContext';
 
 const BadgeContext = createContext();
 
 export function BadgeProvider({ children }) {
   const { isLoggedIn } = useAuth();
+  const { showSuccess, showError } = useNotification();
   const [allBadges, setAllBadges] = useState([]); // 전체 배지 목록
   const [myBadges, setMyBadges] = useState([]); // 내가 획득한 배지
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,9 @@ export function BadgeProvider({ children }) {
       const response = await api.get('/badge');
       setAllBadges(response.data);
     } catch (err) {
-      setError('배지 목록을 불러오는데 실패했습니다.');
+      const message = '배지 목록을 불러오는데 실패했습니다.';
+      setError(message);
+      showError(message);
       console.error('배지 목록 로드 에러:', err);
     } finally {
       setLoading(false);
@@ -37,7 +41,9 @@ export function BadgeProvider({ children }) {
       const response = await api.get('/badge/my');
       setMyBadges(response.data);
     } catch (err) {
-      setError('내 배지 목록을 불러오는데 실패했습니다.');
+      const message = '내 배지 목록을 불러오는데 실패했습니다.';
+      setError(message);
+      showError(message);
       console.error('내 배지 로드 에러:', err);
     } finally {
       setLoading(false);
@@ -55,10 +61,12 @@ export function BadgeProvider({ children }) {
       await api.post('/badge/issue', { badgeId });
       // 성공 시 내 배지 목록 다시 불러오기
       await fetchMyBadges();
+      showSuccess('배지가 성공적으로 발급되었습니다!');
       return { success: true };
     } catch (err) {
       const message = err.response?.data?.message || '배지 발급에 실패했습니다.';
       setError(message);
+      showError(message);
       return { success: false, message };
     } finally {
       setLoading(false);

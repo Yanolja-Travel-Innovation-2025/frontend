@@ -14,6 +14,7 @@ import {
   Typography
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 
 function TabPanel({ children, value, index }) {
   return (
@@ -25,6 +26,7 @@ function TabPanel({ children, value, index }) {
 
 function AuthDialog({ open, onClose }) {
   const { register, login, loading, error, clearError } = useAuth();
+  const { showSuccess } = useNotification();
   const [tab, setTab] = useState(0);
   
   // 로그인 폼 상태
@@ -104,7 +106,7 @@ function AuthDialog({ open, onClose }) {
     
     const result = await register(registerForm.email, registerForm.password, registerForm.nickname);
     if (result.success) {
-      alert('회원가입이 완료되었습니다. 로그인해주세요.');
+      showSuccess('회원가입이 완료되었습니다. 로그인해주세요.');
       setTab(0); // 로그인 탭으로 이동
       setRegisterForm({ email: '', password: '', confirmPassword: '', nickname: '' });
     }

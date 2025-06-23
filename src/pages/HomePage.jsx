@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Map, MapMarker } from 'react-kakao-maps-sdk';
-import { Button, Snackbar, Alert, CircularProgress, Typography, Box } from '@mui/material';
+import { Button, CircularProgress, Typography, Box } from '@mui/material';
 import { useBadges } from '../BadgeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 
 const hallasanBadge = {
   _id: '100',
@@ -29,9 +30,9 @@ function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
 }
 
 function HomePage() {
-  const { addBadge } = useBadges();
-  const { isLoggedIn, user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const { addBadge, issueBadge, loading: badgeLoading } = useBadges();
+  const { isLoggedIn } = useAuth();
+  const { showWarning } = useNotification();
   const [userPos, setUserPos] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,9 +68,15 @@ function HomePage() {
   }
   const canGetBadge = distance !== null && distance < 1000;
 
-  const handleGetBadge = () => {
-    addBadge(hallasanBadge);
-    setOpen(true);
+  const handleGetBadge = async () => {
+    if (!isLoggedIn) {
+      showWarning('배지를 획득하려면 로그인이 필요합니다.');
+      return;
+    }
+    
+    // 목업 배지(한라산 QR)는 임시로 addBadge 사용
+    // 실제 서비스에서는 실제 배지 ID와 issueBadge 사용
+    await addBadge(hallasanBadge);
   };
 
   return (
@@ -113,8 +120,9 @@ function HomePage() {
             size="large"
             sx={{ mt: 3, width: '100%' }}
             onClick={handleGetBadge}
-            disabled={!canGetBadge}
+            disabled={!canGetBadge || badgeLoading}
           >
+            {badgeLoading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
             QR코드 인증 (배지 획득)
           </Button>
           <Typography sx={{ mt: 1, textAlign: 'center' }} color={canGetBadge ? 'success.main' : 'text.secondary'}>
@@ -126,11 +134,6 @@ function HomePage() {
           </Typography>
         </>
       )}
-      <Snackbar open={open} autoHideDuration={2000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity="success" sx={{ width: '100%' }}>
-          한라산 배지를 획득했습니다!
-        </Alert>
-      </Snackbar>
     </div>
   );
 }
