@@ -64,6 +64,21 @@ function getLastVisitDate(badges) {
   return `2024-06-0${last._id}`;
 }
 
+// 쿠폰 발급 규칙 (배지 개수별)
+function getCouponsByBadgeCount(count) {
+  if (count >= 5) return [
+    { id: 'c3', label: '15% 할인 쿠폰', desc: '제휴 상점 15% 할인', special: true },
+    { id: 'c4', label: '특별 쿠폰', desc: '한정 이벤트 쿠폰', special: true },
+  ];
+  if (count >= 3) return [
+    { id: 'c2', label: '10% 할인 쿠폰', desc: '제휴 상점 10% 할인' },
+  ];
+  if (count >= 1) return [
+    { id: 'c1', label: '5% 할인 쿠폰', desc: '제휴 상점 5% 할인' },
+  ];
+  return [];
+}
+
 function MyPage({ loggedIn, nickname }) {
   const { badges } = useBadges();
   const discount = getDiscountByBadgeCount(badges.length);
@@ -73,6 +88,11 @@ function MyPage({ loggedIn, nickname }) {
   const [partnerStores, setPartnerStores] = useState(initialPartnerStores);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', category: '', contact: '', discountRate: '', minimumBadges: '' });
+
+  // 쿠폰 상태 관리(사용 시 삭제)
+  const [usedCoupons, setUsedCoupons] = useState([]);
+  const coupons = getCouponsByBadgeCount(badges.length).filter(c => !usedCoupons.includes(c.id));
+  const handleUseCoupon = (id) => setUsedCoupons(prev => [...prev, id]);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => { setOpen(false); setForm({ name: '', category: '', contact: '', discountRate: '', minimumBadges: '' }); };
@@ -177,6 +197,32 @@ function MyPage({ loggedIn, nickname }) {
           </ListItem>
         ))}
       </List>
+      {/* 쿠폰 섹션 */}
+      <Typography variant="h5" gutterBottom>
+        사용 가능한 쿠폰
+      </Typography>
+      {coupons.length === 0 ? (
+        <Typography color="text.secondary" sx={{ mb: 2 }}>
+          현재 사용 가능한 쿠폰이 없습니다.
+        </Typography>
+      ) : (
+        <List sx={{ mb: 2 }}>
+          {coupons.map(coupon => (
+            <ListItem key={coupon.id} sx={{ border: '1px solid #eee', borderRadius: 2, mb: 1 }}
+              secondaryAction={
+                <Button size="small" color="error" onClick={() => handleUseCoupon(coupon.id)}>
+                  사용
+                </Button>
+              }
+            >
+              <ListItemText
+                primary={<span style={{ fontWeight: 600 }}>{coupon.label} {coupon.special && <Chip label="특별" color="warning" size="small" />}</span>}
+                secondary={coupon.desc}
+              />
+            </ListItem>
+          ))}
+        </List>
+      )}
 
       {/* 추천 명소/코스 */}
       <Divider sx={{ my: 4 }} />
