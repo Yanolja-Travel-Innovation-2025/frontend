@@ -63,7 +63,7 @@ function getLastVisitDate(badges) {
   return `2024-06-0${last._id}`;
 }
 
-function MyPage() {
+function MyPage({ loggedIn, nickname }) {
   const { badges } = useBadges();
   const discount = getDiscountByBadgeCount(badges.length);
   const lastVisit = getLastVisitDate(badges);
@@ -72,6 +72,11 @@ function MyPage() {
       <Typography variant="h4" gutterBottom>
         마이페이지
       </Typography>
+      {loggedIn && (
+        <Typography variant="subtitle1" sx={{ mb: 1 }}>
+          <b>{nickname}</b> 님, 환영합니다!
+        </Typography>
+      )}
       {/* 방문 기록/통계 */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ mb: 2 }}>
         <Chip label={`방문한 장소 수: ${badges.length}곳`} color="info" />
