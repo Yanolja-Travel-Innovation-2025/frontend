@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Box, CssBaseline, AppBar, Toolbar, Typography, BottomNavigation, BottomNavigationAction, Paper, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
+import axios from 'axios';
 
 import HomePage from './pages/HomePage';
 import MyPage from './pages/MyPage';
@@ -35,19 +36,36 @@ function App() {
     }
   };
 
-  // 로그인/로그아웃 핸들러
+  // 로그인/회원가입 핸들러
   const handleLogin = () => {
     setLoginOpen(true);
   };
-  const handleLoginSubmit = () => {
-    setNickname(inputName || '게스트');
-    setLoggedIn(true);
-    setLoginOpen(false);
-    setInputName('');
+  const handleLoginSubmit = async () => {
+    try {
+      // 간단히: 닉네임만 입력하면 회원가입/로그인 시도
+      const email = `${inputName || 'guest'}@test.com`;
+      const password = 'test1234';
+      // 회원가입 먼저 시도(이미 가입된 경우 무시)
+      try {
+        await axios.post('http://localhost:4000/api/auth/register', { email, password, nickname: inputName });
+      } catch (e) {
+        // 이미 가입된 경우 무시
+      }
+      // 로그인 시도
+      const res = await axios.post('http://localhost:4000/api/auth/login', { email, password });
+      localStorage.setItem('token', res.data.token);
+      setNickname(res.data.user.nickname);
+      setLoggedIn(true);
+      setLoginOpen(false);
+      setInputName('');
+    } catch (err) {
+      alert('로그인 실패: ' + (err.response?.data?.message || err.message));
+    }
   };
   const handleLogout = () => {
     setLoggedIn(false);
     setNickname('');
+    localStorage.removeItem('token');
     window.location.reload(); // 시연 편의상 전체 초기화
   };
 
