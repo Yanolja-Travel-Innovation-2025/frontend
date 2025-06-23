@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import MyPage from './pages/MyPage';
 import { BadgeProvider } from './BadgeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { PartnerProvider } from './contexts/PartnerContext';
 import AuthDialog from './components/AuthDialog';
 
 function AppContent() {
@@ -96,7 +97,9 @@ function App() {
   return (
     <AuthProvider>
       <BadgeProvider>
-        <AppContent />
+        <PartnerProvider>
+          <AppContent />
+        </PartnerProvider>
       </BadgeProvider>
     </AuthProvider>
   );

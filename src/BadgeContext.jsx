@@ -1,56 +1,122 @@
-import React, { createContext, useContext, useState } from 'react';
-
-const initialBadges = [
-  {
-    _id: '1',
-    name: '한라산 정복',
-    description: '대한민국에서 가장 높은 산, 한라산 등반을 완료했습니다.',
-    image: 'https://images.unsplash.com/photo-1579834410263-41c3075a359b?q=80&w=1974&auto=format&fit=crop',
-    rarity: 'gold',
-  },
-  {
-    _id: '2',
-    name: '성산일출봉',
-    description: '유네스코 세계자연유산, 성산일출봉에서 일출을 감상했습니다.',
-    image: 'https://images.unsplash.com/photo-1552526002-a45c3b17df54?q=80&w=2070&auto=format&fit=crop',
-    rarity: 'silver',
-  },
-  {
-    _id: '3',
-    name: '우도 한 바퀴',
-    description: '아름다운 섬 우도를 자전거로 일주했습니다.',
-    image: 'https://images.unsplash.com/photo-1628521094191-ead27525373b?q=80&w=1964&auto=format&fit=crop',
-    rarity: 'silver',
-  },
-  {
-    _id: '4',
-    name: '협재해수욕장',
-    description: '에메랄드빛 바다, 협재해수욕장에서의 추억',
-    image: 'https://images.unsplash.com/photo-1601275937719-f2de3955374e?q=80&w=2070&auto=format&fit=crop',
-    rarity: 'bronze',
-  },
-];
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from './api/axios';
+import { useAuth } from './contexts/AuthContext';
 
 const BadgeContext = createContext();
 
 export function BadgeProvider({ children }) {
-  const [badges, setBadges] = useState(initialBadges);
+  const { isLoggedIn } = useAuth();
+  const [allBadges, setAllBadges] = useState([]); // 전체 배지 목록
+  const [myBadges, setMyBadges] = useState([]); // 내가 획득한 배지
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // 이미 있는 배지는 중복 추가하지 않음
-  const addBadge = (badge) => {
-    setBadges((prev) => {
-      if (prev.find((b) => b._id === badge._id)) return prev;
-      return [...prev, badge];
-    });
+  // 전체 배지 목록 불러오기
+  const fetchAllBadges = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/badge');
+      setAllBadges(response.data);
+    } catch (err) {
+      setError('배지 목록을 불러오는데 실패했습니다.');
+      console.error('배지 목록 로드 에러:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 내 배지 목록 불러오기 (로그인한 경우에만)
+  const fetchMyBadges = async () => {
+    if (!isLoggedIn) {
+      setMyBadges([]);
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const response = await api.get('/badge/my');
+      setMyBadges(response.data);
+    } catch (err) {
+      setError('내 배지 목록을 불러오는데 실패했습니다.');
+      console.error('내 배지 로드 에러:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 배지 발급 (실제 API 호출)
+  const issueBadge = async (badgeId) => {
+    if (!isLoggedIn) {
+      throw new Error('로그인이 필요합니다.');
+    }
+
+    try {
+      setLoading(true);
+      await api.post('/badge/issue', { badgeId });
+      // 성공 시 내 배지 목록 다시 불러오기
+      await fetchMyBadges();
+      return { success: true };
+    } catch (err) {
+      const message = err.response?.data?.message || '배지 발급에 실패했습니다.';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 기존 addBadge 함수는 호환성을 위해 유지 (목업에서 사용하던 것들)
+  const addBadge = async (badge) => {
+    // 실제 배지 ID가 있으면 API 호출, 없으면 목업 처리
+    if (badge._id && badge._id !== '100') {
+      return await issueBadge(badge._id);
+    } else {
+      // 목업 배지인 경우 (한라산 QR 인증 등)
+      // 실제 서비스에서는 이 부분을 제거하고 모두 실제 배지 ID로 처리
+      if (!myBadges.find(b => b._id === badge._id)) {
+        setMyBadges(prev => [...prev, badge]);
+      }
+      return { success: true };
+    }
+  };
+
+  // 에러 초기화
+  const clearError = () => setError(null);
+
+  // 앱 시작 시 전체 배지 목록 불러오기
+  useEffect(() => {
+    fetchAllBadges();
+  }, []);
+
+  // 로그인 상태 변경 시 내 배지 목록 불러오기
+  useEffect(() => {
+    fetchMyBadges();
+  }, [isLoggedIn]);
+
+  const value = {
+    allBadges,
+    badges: myBadges, // 기존 호환성을 위해 badges로도 제공
+    myBadges,
+    loading,
+    error,
+    addBadge,
+    issueBadge,
+    fetchAllBadges,
+    fetchMyBadges,
+    clearError,
   };
 
   return (
-    <BadgeContext.Provider value={{ badges, addBadge }}>
+    <BadgeContext.Provider value={value}>
       {children}
     </BadgeContext.Provider>
   );
 }
 
 export function useBadges() {
-  return useContext(BadgeContext);
+  const context = useContext(BadgeContext);
+  if (!context) {
+    throw new Error('useBadges must be used within a BadgeProvider');
+  }
+  return context;
 } 

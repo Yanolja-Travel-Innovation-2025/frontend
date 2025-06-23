@@ -1,38 +1,11 @@
 import React, { useState } from 'react';
-import { Box, Typography, Grid, Card, CardContent, CardMedia, Divider, List, ListItem, ListItemText, Chip, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, CardMedia, Divider, List, ListItem, ListItemText, Chip, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Alert, CircularProgress } from '@mui/material';
 import { useBadges } from '../BadgeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { usePartners } from '../contexts/PartnerContext';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-// 제휴 상점 목업 데이터
-const initialPartnerStores = [
-  {
-    _id: 'p1',
-    name: '제주카페 바다향기',
-    category: '카페',
-    discountRate: 5,
-    minimumBadges: 1,
-    contact: '064-123-4567',
-  },
-  {
-    _id: 'p2',
-    name: '성산 해물 식당',
-    category: '식당',
-    discountRate: 10,
-    minimumBadges: 3,
-    contact: '064-234-5678',
-  },
-  {
-    _id: 'p3',
-    name: '한라산 게스트하우스',
-    category: '숙박',
-    discountRate: 15,
-    minimumBadges: 5,
-    contact: '010-3456-7890',
-  },
-];
-
-// 추천 명소/코스 목업 데이터
+// 추천 명소/코스 목업 데이터 (실제 서비스에서는 API로 관리)
 const allSpots = [
   { _id: '1', name: '한라산', desc: '제주 최고봉, 사계절 등산 명소' },
   { _id: '2', name: '성산일출봉', desc: '유네스코 세계자연유산, 일출 명소' },
@@ -81,15 +54,17 @@ function getCouponsByBadgeCount(count) {
 }
 
 function MyPage() {
-  const { badges } = useBadges();
+  const { badges, loading: badgeLoading, error: badgeError } = useBadges();
   const { isLoggedIn, user } = useAuth();
+  const { partners, addPartner, deletePartner, loading: partnerLoading, error: partnerError } = usePartners();
+  
   const discount = getDiscountByBadgeCount(badges.length);
   const lastVisit = getLastVisitDate(badges);
 
-  // 제휴점 등록/삭제 상태 관리
-  const [partnerStores, setPartnerStores] = useState(initialPartnerStores);
+  // 제휴점 등록 폼 상태
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', category: '', contact: '', discountRate: '', minimumBadges: '' });
+  const [formError, setFormError] = useState('');
 
   // 쿠폰 상태 관리(사용 시 삭제)
   const [usedCoupons, setUsedCoupons] = useState([]);
@@ -97,16 +72,40 @@ function MyPage() {
   const handleUseCoupon = (id) => setUsedCoupons(prev => [...prev, id]);
 
   const handleOpen = () => setOpen(true);
-  const handleClose = () => { setOpen(false); setForm({ name: '', category: '', contact: '', discountRate: '', minimumBadges: '' }); };
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-  const handleAdd = () => {
-    setPartnerStores(prev => [
-      ...prev,
-      { ...form, _id: 'p' + (Date.now()), discountRate: Number(form.discountRate), minimumBadges: Number(form.minimumBadges) }
-    ]);
-    handleClose();
+  const handleClose = () => { 
+    setOpen(false); 
+    setForm({ name: '', category: '', contact: '', discountRate: '', minimumBadges: '' });
+    setFormError('');
   };
-  const handleDelete = (id) => setPartnerStores(prev => prev.filter(s => s._id !== id));
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  
+  const handleAdd = async () => {
+    // 유효성 검사
+    if (!form.name || !form.category || !form.contact || !form.discountRate || !form.minimumBadges) {
+      setFormError('모든 필드를 입력해주세요.');
+      return;
+    }
+    
+    const result = await addPartner({
+      name: form.name,
+      category: form.category,
+      contact: form.contact,
+      discountRate: Number(form.discountRate),
+      minimumBadges: Number(form.minimumBadges)
+    });
+    
+    if (result.success) {
+      handleClose();
+    } else {
+      setFormError(result.message);
+    }
+  };
+  
+  const handleDelete = async (id) => {
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      await deletePartner(id);
+    }
+  };
 
   return (
     <Box sx={{ p: 3 }}>
@@ -118,6 +117,19 @@ function MyPage() {
           <b>{user?.nickname}</b> 님, 환영합니다!
         </Typography>
       )}
+      
+      {/* 배지 로딩/에러 처리 */}
+      {badgeLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+          <CircularProgress />
+        </Box>
+      )}
+      {badgeError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {badgeError}
+        </Alert>
+      )}
+      
       {/* 방문 기록/통계 */}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} sx={{ mb: 2 }}>
         <Chip label={`방문한 장소 수: ${badges.length}곳`} color="info" />
@@ -151,19 +163,35 @@ function MyPage() {
           </Grid>
         ))}
       </Grid>
+      
       {/* 제휴 상점/할인 안내 */}
       <Divider sx={{ my: 4 }} />
       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
         <Typography variant="h5">
           제휴 상점 & 할인 혜택
         </Typography>
-        <Button variant="outlined" size="small" onClick={handleOpen}>
-          제휴점 등록
-        </Button>
+        {isLoggedIn && (
+          <Button variant="outlined" size="small" onClick={handleOpen} disabled={partnerLoading}>
+            제휴점 등록
+          </Button>
+        )}
       </Stack>
+      
+      {/* 제휴점 에러 처리 */}
+      {partnerError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {partnerError}
+        </Alert>
+      )}
+      
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>제휴점 등록</DialogTitle>
         <DialogContent>
+          {formError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {formError}
+            </Alert>
+          )}
           <TextField label="상점명" name="name" value={form.name} onChange={handleChange} fullWidth sx={{ mb: 2 }} />
           <TextField label="카테고리" name="category" value={form.category} onChange={handleChange} fullWidth sx={{ mb: 2 }} />
           <TextField label="연락처" name="contact" value={form.contact} onChange={handleChange} fullWidth sx={{ mb: 2 }} />
@@ -172,19 +200,31 @@ function MyPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>취소</Button>
-          <Button onClick={handleAdd} variant="contained">등록</Button>
+          <Button onClick={handleAdd} variant="contained" disabled={partnerLoading}>
+            {partnerLoading ? <CircularProgress size={20} /> : '등록'}
+          </Button>
         </DialogActions>
       </Dialog>
+      
       <Typography variant="subtitle1" sx={{ mb: 2 }}>
         내 배지 개수: <b>{badges.length}개</b> → <Chip label={discount.desc} color={discount.rate > 0 ? 'success' : 'default'} size="small" />
       </Typography>
+      
+      {partnerLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+          <CircularProgress />
+        </Box>
+      )}
+      
       <List>
-        {partnerStores.map((store) => (
+        {partners.map((store) => (
           <ListItem key={store._id} sx={{ mb: 1, border: '1px solid #eee', borderRadius: 2 }}
             secondaryAction={
-              <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(store._id)}>
-                <DeleteIcon />
-              </IconButton>
+              isLoggedIn && (
+                <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(store._id)} disabled={partnerLoading}>
+                  <DeleteIcon />
+                </IconButton>
+              )
             }
           >
             <ListItemText
@@ -199,6 +239,7 @@ function MyPage() {
           </ListItem>
         ))}
       </List>
+      
       {/* 쿠폰 섹션 */}
       <Typography variant="h5" gutterBottom>
         사용 가능한 쿠폰
