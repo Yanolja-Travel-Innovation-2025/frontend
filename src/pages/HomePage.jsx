@@ -85,7 +85,7 @@ function HomePage() {
         <Map
           center={HALLASAN_COORD}
           style={{ width: '100%', height: '500px' }}
-          level={9}
+          level={11}
         >
           <MapMarker position={HALLASAN_COORD}>
             <div style={{ padding: '5px', color: '#000' }}>제주도</div>
