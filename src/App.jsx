@@ -6,6 +6,7 @@ import PersonIcon from '@mui/icons-material/Person';
 
 import HomePage from './pages/HomePage';
 import MyPage from './pages/MyPage';
+import { BadgeProvider } from './BadgeContext';
 
 function App() {
   const navigate = useNavigate();
@@ -29,37 +30,39 @@ function App() {
   };
 
   return (
-    <Box sx={{ pb: 7 }}>
-      <CssBaseline />
-      <AppBar position="fixed" color="primary">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            디지털 관광 여권
-          </Typography>
-        </Toolbar>
-      </AppBar>
-      
-      {/* Add Toolbar to create space for fixed AppBar */}
-      <Toolbar />
+    <BadgeProvider>
+      <Box sx={{ pb: 7 }}>
+        <CssBaseline />
+        <AppBar position="fixed" color="primary">
+          <Toolbar>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+              디지털 관광 여권
+            </Typography>
+          </Toolbar>
+        </AppBar>
+        
+        {/* Add Toolbar to create space for fixed AppBar */}
+        <Toolbar />
 
-      <main>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/mypage" element={<MyPage />} />
-        </Routes>
-      </main>
+        <main>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/mypage" element={<MyPage />} />
+          </Routes>
+        </main>
 
-      <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
-        <BottomNavigation
-          showLabels
-          value={value}
-          onChange={handleChange}
-        >
-          <BottomNavigationAction label="홈" icon={<HomeIcon />} />
-          <BottomNavigationAction label="마이페이지" icon={<PersonIcon />} />
-        </BottomNavigation>
-      </Paper>
-    </Box>
+        <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
+          <BottomNavigation
+            showLabels
+            value={value}
+            onChange={handleChange}
+          >
+            <BottomNavigationAction label="홈" icon={<HomeIcon />} />
+            <BottomNavigationAction label="마이페이지" icon={<PersonIcon />} />
+          </BottomNavigation>
+        </Paper>
+      </Box>
+    </BadgeProvider>
   );
 }
 
