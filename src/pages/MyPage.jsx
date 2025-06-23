@@ -30,6 +30,21 @@ const partnerStores = [
   },
 ];
 
+// 추천 명소/코스 목업 데이터
+const allSpots = [
+  { _id: '1', name: '한라산', desc: '제주 최고봉, 사계절 등산 명소' },
+  { _id: '2', name: '성산일출봉', desc: '유네스코 세계자연유산, 일출 명소' },
+  { _id: '3', name: '우도', desc: '섬 속의 섬, 자전거 일주 추천' },
+  { _id: '4', name: '협재해수욕장', desc: '에메랄드빛 바다, 여름 해수욕' },
+  { _id: '5', name: '제주 올레길 7코스', desc: '봄·가을 걷기 여행 추천' },
+];
+const seasonalCourses = [
+  { season: '봄', course: '올레길 7코스 + 협재해수욕장' },
+  { season: '여름', course: '협재해수욕장 + 우도' },
+  { season: '가을', course: '한라산 + 올레길 7코스' },
+  { season: '겨울', course: '한라산 설경 트레킹' },
+];
+
 function getDiscountByBadgeCount(count) {
   if (count >= 5) return { rate: 15, desc: '15% 할인 + 특별 쿠폰' };
   if (count >= 3) return { rate: 10, desc: '10% 할인' };
@@ -110,6 +125,38 @@ function MyPage() {
             ) : (
               <Chip label={`배지 ${store.minimumBadges}개 필요`} color="default" />
             )}
+          </ListItem>
+        ))}
+      </List>
+
+      {/* 추천 명소/코스 */}
+      <Divider sx={{ my: 4 }} />
+      <Typography variant="h5" gutterBottom>
+        추천 명소 & 계절별 추천 코스
+      </Typography>
+      <Typography variant="subtitle1" sx={{ mb: 1 }}>
+        아직 방문하지 않은 명소
+      </Typography>
+      <List>
+        {allSpots.filter(spot => !badges.find(b => b.name.includes(spot.name))).map(spot => (
+          <ListItem key={spot._id}>
+            <ListItemText primary={spot.name} secondary={spot.desc} />
+            <Chip label="추천" color="warning" size="small" />
+          </ListItem>
+        ))}
+        {allSpots.filter(spot => !badges.find(b => b.name.includes(spot.name))).length === 0 && (
+          <ListItem>
+            <ListItemText primary="모든 명소를 방문하셨습니다!" />
+          </ListItem>
+        )}
+      </List>
+      <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>
+        계절별 추천 코스
+      </Typography>
+      <List>
+        {seasonalCourses.map((c) => (
+          <ListItem key={c.season}>
+            <ListItemText primary={`${c.season} 추천`} secondary={c.course} />
           </ListItem>
         ))}
       </List>
