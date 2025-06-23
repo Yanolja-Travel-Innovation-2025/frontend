@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Typography, Grid, Card, CardContent, CardMedia, Divider, List, ListItem, ListItemText, Chip, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton } from '@mui/material';
 import { useBadges } from '../BadgeContext';
+import { useAuth } from '../contexts/AuthContext';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 // 제휴 상점 목업 데이터
@@ -79,8 +80,9 @@ function getCouponsByBadgeCount(count) {
   return [];
 }
 
-function MyPage({ loggedIn, nickname }) {
+function MyPage() {
   const { badges } = useBadges();
+  const { isLoggedIn, user } = useAuth();
   const discount = getDiscountByBadgeCount(badges.length);
   const lastVisit = getLastVisitDate(badges);
 
@@ -111,9 +113,9 @@ function MyPage({ loggedIn, nickname }) {
       <Typography variant="h4" gutterBottom>
         마이페이지
       </Typography>
-      {loggedIn && (
+      {isLoggedIn && (
         <Typography variant="subtitle1" sx={{ mb: 1 }}>
-          <b>{nickname}</b> 님, 환영합니다!
+          <b>{user?.nickname}</b> 님, 환영합니다!
         </Typography>
       )}
       {/* 방문 기록/통계 */}

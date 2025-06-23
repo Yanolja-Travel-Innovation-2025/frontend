@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Map, MapMarker } from 'react-kakao-maps-sdk';
 import { Button, Snackbar, Alert, CircularProgress, Typography, Box } from '@mui/material';
 import { useBadges } from '../BadgeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const hallasanBadge = {
   _id: '100',
@@ -29,6 +30,7 @@ function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
 
 function HomePage() {
   const { addBadge } = useBadges();
+  const { isLoggedIn, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [userPos, setUserPos] = useState(null);
   const [loading, setLoading] = useState(true);

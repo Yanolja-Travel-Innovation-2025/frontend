@@ -1,38 +1,21 @@
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { Box, CssBaseline, AppBar, Toolbar, Typography, BottomNavigation, BottomNavigationAction, Paper, Button, Dialog, DialogTitle, DialogContent, TextField, DialogActions } from '@mui/material';
+import { Box, CssBaseline, AppBar, Toolbar, Typography, BottomNavigation, BottomNavigationAction, Paper, Button } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
-import api from './api/axios';
-import { jwtDecode } from 'jwt-decode';
 
 import HomePage from './pages/HomePage';
 import MyPage from './pages/MyPage';
 import { BadgeProvider } from './BadgeContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AuthDialog from './components/AuthDialog';
 
-function App() {
+function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // 로그인 상태/닉네임 관리
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [nickname, setNickname] = useState('');
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [inputName, setInputName] = useState('');
-
-  // 앱 시작 시 토큰 있으면 자동 로그인
-  React.useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const decoded = jwtDecode(token);
-        setLoggedIn(true);
-        setNickname(decoded.nickname);
-      } catch (e) {
-        localStorage.removeItem('token');
-      }
-    }
-  }, []);
+  const { user, logout, isLoggedIn } = useAuth();
+  
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
   // Get current value from path for BottomNavigation
   const getCurrentNavValue = (pathname) => {
@@ -51,98 +34,71 @@ function App() {
     }
   };
 
-  // 로그인/회원가입 핸들러
   const handleLogin = () => {
-    setLoginOpen(true);
+    setAuthDialogOpen(true);
   };
-  const handleLoginSubmit = async () => {
-    try {
-      // 간단히: 닉네임만 입력하면 회원가입/로그인 시도
-      const email = `${inputName || 'guest'}@test.com`;
-      const password = 'test1234';
-      // 회원가입 먼저 시도(이미 가입된 경우 무시)
-      try {
-        await api.post('/auth/register', { email, password, nickname: inputName });
-      } catch (e) {
-        // 이미 가입된 경우 무시
-      }
-      // 로그인 시도
-      const res = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', res.data.token);
-      setNickname(res.data.user.nickname);
-      setLoggedIn(true);
-      setLoginOpen(false);
-      setInputName('');
-    } catch (err) {
-      alert('로그인 실패: ' + (err.response?.data?.message || err.message));
-    }
-  };
+
   const handleLogout = () => {
-    setLoggedIn(false);
-    setNickname('');
-    localStorage.removeItem('token');
-    window.location.reload(); // 시연 편의상 전체 초기화
+    logout();
+    navigate('/'); // 로그아웃 시 홈으로 이동
   };
 
   return (
-    <BadgeProvider>
-      <Box sx={{ pb: 7 }}>
-        <CssBaseline />
-        <AppBar position="fixed" color="primary">
-          <Toolbar>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              디지털 관광 여권
-            </Typography>
-            {loggedIn ? (
-              <Button color="inherit" onClick={handleLogout}>
-                로그아웃
-              </Button>
-            ) : (
-              <Button color="inherit" onClick={handleLogin}>
-                로그인
-              </Button>
-            )}
-          </Toolbar>
-        </AppBar>
-        <Dialog open={loginOpen} onClose={() => setLoginOpen(false)}>
-          <DialogTitle>로그인</DialogTitle>
-          <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="닉네임"
-              fullWidth
-              value={inputName}
-              onChange={e => setInputName(e.target.value)}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setLoginOpen(false)}>취소</Button>
-            <Button onClick={handleLoginSubmit} variant="contained">확인</Button>
-          </DialogActions>
-        </Dialog>
-        {/* Add Toolbar to create space for fixed AppBar */}
-        <Toolbar />
+    <Box sx={{ pb: 7 }}>
+      <CssBaseline />
+      <AppBar position="fixed" color="primary">
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            디지털 관광 여권
+          </Typography>
+          {isLoggedIn ? (
+            <Button color="inherit" onClick={handleLogout}>
+              로그아웃 ({user?.nickname})
+            </Button>
+          ) : (
+            <Button color="inherit" onClick={handleLogin}>
+              로그인
+            </Button>
+          )}
+        </Toolbar>
+      </AppBar>
+      
+      <AuthDialog 
+        open={authDialogOpen} 
+        onClose={() => setAuthDialogOpen(false)} 
+      />
+      
+      {/* Add Toolbar to create space for fixed AppBar */}
+      <Toolbar />
 
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage loggedIn={loggedIn} nickname={nickname} />} />
-            <Route path="/mypage" element={<MyPage loggedIn={loggedIn} nickname={nickname} />} />
-          </Routes>
-        </main>
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/mypage" element={<MyPage />} />
+        </Routes>
+      </main>
 
-        <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
-          <BottomNavigation
-            showLabels
-            value={value}
-            onChange={handleChange}
-          >
-            <BottomNavigationAction label="홈" icon={<HomeIcon />} />
-            <BottomNavigationAction label="마이페이지" icon={<PersonIcon />} />
-          </BottomNavigation>
-        </Paper>
-      </Box>
-    </BadgeProvider>
+      <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
+        <BottomNavigation
+          showLabels
+          value={value}
+          onChange={handleChange}
+        >
+          <BottomNavigationAction label="홈" icon={<HomeIcon />} />
+          <BottomNavigationAction label="마이페이지" icon={<PersonIcon />} />
+        </BottomNavigation>
+      </Paper>
+    </Box>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BadgeProvider>
+        <AppContent />
+      </BadgeProvider>
+    </AuthProvider>
   );
 }
 
