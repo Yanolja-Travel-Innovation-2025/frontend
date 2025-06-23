@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Map, MapMarker } from 'react-kakao-maps-sdk';
-import { Button, CircularProgress, Typography, Box } from '@mui/material';
+import { Button, CircularProgress, Typography, Box, Card, CardContent, Grid, Chip } from '@mui/material';
 import { useBadges } from '../BadgeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
-const hallasanBadge = {
-  _id: '100',
-  name: '한라산 QR 인증',
-  description: 'QR코드 인증으로 한라산 배지를 획득했습니다!',
-  image: 'https://images.unsplash.com/photo-1579834410263-41c3075a359b?q=80&w=1974&auto=format&fit=crop',
-  rarity: 'gold',
+// 제주도 관광지 좌표 (실제 배지 위치)
+const BADGE_LOCATIONS = {
+  'HALLASAN_SUMMIT_2024': { lat: 33.3617, lng: 126.5312, name: '한라산 백록담' },
+  'SEONGSAN_SUNRISE_2024': { lat: 33.4584, lng: 126.9423, name: '성산일출봉' },
+  'UDO_LIGHTHOUSE_2024': { lat: 33.5064, lng: 126.9502, name: '우도 등대' },
+  'HYEOPJAE_BEACH_2024': { lat: 33.3939, lng: 126.2394, name: '협재해수욕장' },
+  'OLLE_TRAIL_7_2024': { lat: 33.2450, lng: 126.2654, name: '올레길 7코스' },
 };
 
-const HALLASAN_COORD = { lat: 33.3617, lng: 126.5292 };
+const JEJU_CENTER = { lat: 33.4996, lng: 126.5312 };
 
 // 두 좌표(위도,경도) 사이 거리(m) 계산 함수 (Haversine 공식)
 function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
@@ -30,7 +31,7 @@ function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
 }
 
 function HomePage() {
-  const { addBadge, issueBadge, loading: badgeLoading } = useBadges();
+  const { allBadges, myBadges, issueBadge, loading: badgeLoading } = useBadges();
   const { isLoggedIn } = useAuth();
   const { showWarning } = useNotification();
   const [userPos, setUserPos] = useState(null);
@@ -55,57 +56,101 @@ function HomePage() {
     );
   }, []);
 
-  // 테스트용 위치 강제 세팅
+  // 테스트용 위치 강제 세팅 (랜덤 위치)
   const handleSetTestLocation = () => {
-    setUserPos(HALLASAN_COORD);
+    const locations = Object.values(BADGE_LOCATIONS);
+    const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+    setUserPos(randomLocation);
     setError(null);
     setLoading(false);
   };
 
-  let distance = null;
-  if (userPos) {
-    distance = getDistanceFromLatLonInM(userPos.lat, userPos.lng, HALLASAN_COORD.lat, HALLASAN_COORD.lng);
-  }
-  const canGetBadge = distance !== null && distance < 1000;
+  // 현재 위치에서 획득 가능한 배지들 찾기
+  const getAvailableBadges = () => {
+    if (!userPos || !allBadges.length) return [];
+    
+    return allBadges.filter(badge => {
+      // 이미 획득한 배지는 제외
+      if (myBadges.find(myBadge => myBadge._id === badge._id)) return false;
+      
+      // 위치 정보가 있는 배지만 체크
+      if (!badge.location?.coordinates) return false;
+      
+      const [lng, lat] = badge.location.coordinates;
+      const distance = getDistanceFromLatLonInM(userPos.lat, userPos.lng, lat, lng);
+      
+      // 1km 이내의 배지만 획득 가능
+      return distance < 1000;
+    });
+  };
 
-  const handleGetBadge = async () => {
+  const availableBadges = getAvailableBadges();
+
+  const handleGetBadge = async (badgeId) => {
     if (!isLoggedIn) {
       showWarning('배지를 획득하려면 로그인이 필요합니다.');
       return;
     }
     
-    // 목업 배지(한라산 QR)는 임시로 addBadge 사용
-    // 실제 서비스에서는 실제 배지 ID와 issueBadge 사용
-    await addBadge(hallasanBadge);
+    await issueBadge(badgeId);
   };
 
   return (
     <div style={{ padding: '0 20px' }}>
-      <h1 style={{ margin: '20px 0' }}>홈 (지도)</h1>
+      <h1 style={{ margin: '20px 0' }}>제주도 디지털 여권</h1>
+      
       <Button
         variant="outlined"
         size="small"
-        sx={{ mb: 1 }}
+        sx={{ mb: 2 }}
         onClick={handleSetTestLocation}
       >
-        테스트 위치(한라산 근처)로 이동
+        🎲 랜덤 관광지로 이동 (테스트)
       </Button>
+      
+      {/* 지도 */}
       <div style={{ marginTop: '16px', borderRadius: '12px', overflow: 'hidden' }}>
         <Map
-          center={HALLASAN_COORD}
-          style={{ width: '100%', height: '500px' }}
-          level={11}
+          center={JEJU_CENTER}
+          style={{ width: '100%', height: '400px' }}
+          level={10}
         >
-          <MapMarker position={HALLASAN_COORD}>
-            <div style={{ padding: '5px', color: '#000' }}>제주도</div>
-          </MapMarker>
+          {/* 모든 배지 위치 마커 표시 */}
+          {allBadges.map((badge) => {
+            if (!badge.location?.coordinates) return null;
+            const [lng, lat] = badge.location.coordinates;
+            const isObtained = myBadges.find(myBadge => myBadge._id === badge._id);
+            
+            return (
+              <MapMarker 
+                key={badge._id} 
+                position={{ lat, lng }}
+                image={{ 
+                  src: isObtained 
+                    ? 'https://cdn-icons-png.flaticon.com/512/1828/1828640.png' // 획득한 배지 (체크)
+                    : 'https://cdn-icons-png.flaticon.com/512/684/684908.png',   // 미획득 배지 (보물상자)
+                  size: { width: 30, height: 30 } 
+                }}
+              >
+                <div style={{ padding: '5px', color: isObtained ? '#4caf50' : '#ff9800', fontWeight: 'bold' }}>
+                  {badge.location.name}
+                </div>
+              </MapMarker>
+            );
+          })}
+          
+          {/* 내 위치 마커 */}
           {userPos && (
-            <MapMarker position={userPos} image={{ src: 'https://cdn-icons-png.flaticon.com/512/64/64113.png', size: { width: 32, height: 32 } }}>
-              <div style={{ padding: '2px', color: '#1976d2' }}>내 위치</div>
+            <MapMarker 
+              position={userPos} 
+              image={{ src: 'https://cdn-icons-png.flaticon.com/512/64/64113.png', size: { width: 32, height: 32 } }}
+            >
+              <div style={{ padding: '2px', color: '#1976d2', fontWeight: 'bold' }}>내 위치</div>
             </MapMarker>
           )}
         </Map>
       </div>
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
           <CircularProgress />
@@ -114,24 +159,74 @@ function HomePage() {
         <Typography color="error" sx={{ mt: 3 }}>{error}</Typography>
       ) : (
         <>
-          <Button
-            variant="contained"
-            color="success"
-            size="large"
-            sx={{ mt: 3, width: '100%' }}
-            onClick={handleGetBadge}
-            disabled={!canGetBadge || badgeLoading}
-          >
-            {badgeLoading ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
-            QR코드 인증 (배지 획득)
-          </Button>
-          <Typography sx={{ mt: 1, textAlign: 'center' }} color={canGetBadge ? 'success.main' : 'text.secondary'}>
-            {canGetBadge
-              ? '한라산 반경 1km 이내입니다!'
-              : distance !== null
-                ? `현재 한라산까지 약 ${(distance / 1000).toFixed(2)}km 떨어져 있습니다.`
-                : ''}
-          </Typography>
+          {/* 획득 가능한 배지 목록 */}
+          {availableBadges.length > 0 ? (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                🎯 현재 위치에서 획득 가능한 배지 ({availableBadges.length}개)
+              </Typography>
+              <Grid container spacing={2}>
+                {availableBadges.map((badge) => {
+                  const [lng, lat] = badge.location.coordinates;
+                  const distance = getDistanceFromLatLonInM(userPos.lat, userPos.lng, lat, lng);
+                  
+                  return (
+                    <Grid item xs={12} sm={6} key={badge._id}>
+                      <Card sx={{ height: '100%' }}>
+                        <CardContent>
+                          <Typography variant="h6" gutterBottom>
+                            {badge.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            {badge.description}
+                          </Typography>
+                          <Chip 
+                            label={badge.rarity} 
+                            color={badge.rarity === 'gold' ? 'warning' : badge.rarity === 'silver' ? 'info' : 'default'}
+                            size="small" 
+                            sx={{ mb: 2 }}
+                          />
+                          <Typography variant="caption" display="block" sx={{ mb: 2 }}>
+                            📍 {badge.location.name} (약 {Math.round(distance)}m)
+                          </Typography>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            fullWidth
+                            onClick={() => handleGetBadge(badge._id)}
+                            disabled={badgeLoading}
+                            startIcon={badgeLoading ? <CircularProgress size={20} /> : null}
+                          >
+                            QR 인증하고 배지 획득
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            </Box>
+          ) : (
+            <Box sx={{ mt: 3, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary">
+                🗺️ 현재 위치에서 획득 가능한 배지가 없습니다
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                제주도 관광지 근처(1km 이내)로 이동해보세요!
+              </Typography>
+            </Box>
+          )}
+
+          {/* 현재 상태 요약 */}
+          <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.100', borderRadius: 2 }}>
+            <Typography variant="subtitle1">
+              📊 나의 배지 수집 현황
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              전체 배지: {allBadges.length}개 | 획득한 배지: {myBadges.length}개 | 
+              진행률: {allBadges.length > 0 ? Math.round((myBadges.length / allBadges.length) * 100) : 0}%
+            </Typography>
+          </Box>
         </>
       )}
     </div>
