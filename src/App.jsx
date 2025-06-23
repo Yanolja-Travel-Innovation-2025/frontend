@@ -4,6 +4,7 @@ import { Box, CssBaseline, AppBar, Toolbar, Typography, BottomNavigation, Bottom
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
 import axios from 'axios';
+import jwtDecode from 'jwt-decode';
 
 import HomePage from './pages/HomePage';
 import MyPage from './pages/MyPage';
@@ -18,6 +19,20 @@ function App() {
   const [nickname, setNickname] = useState('');
   const [loginOpen, setLoginOpen] = useState(false);
   const [inputName, setInputName] = useState('');
+
+  // 앱 시작 시 토큰 있으면 자동 로그인
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        setLoggedIn(true);
+        setNickname(decoded.nickname);
+      } catch (e) {
+        localStorage.removeItem('token');
+      }
+    }
+  }, []);
 
   // Get current value from path for BottomNavigation
   const getCurrentNavValue = (pathname) => {
