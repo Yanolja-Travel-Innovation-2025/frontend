@@ -1,9 +1,10 @@
-import React from 'react';
-import { Box, Typography, Grid, Card, CardContent, CardMedia, Divider, List, ListItem, ListItemText, Chip, Stack } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Typography, Grid, Card, CardContent, CardMedia, Divider, List, ListItem, ListItemText, Chip, Stack, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton } from '@mui/material';
 import { useBadges } from '../BadgeContext';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 // 제휴 상점 목업 데이터
-const partnerStores = [
+const initialPartnerStores = [
   {
     _id: 'p1',
     name: '제주카페 바다향기',
@@ -67,6 +68,24 @@ function MyPage({ loggedIn, nickname }) {
   const { badges } = useBadges();
   const discount = getDiscountByBadgeCount(badges.length);
   const lastVisit = getLastVisitDate(badges);
+
+  // 제휴점 등록/삭제 상태 관리
+  const [partnerStores, setPartnerStores] = useState(initialPartnerStores);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ name: '', category: '', contact: '', discountRate: '', minimumBadges: '' });
+
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => { setOpen(false); setForm({ name: '', category: '', contact: '', discountRate: '', minimumBadges: '' }); };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleAdd = () => {
+    setPartnerStores(prev => [
+      ...prev,
+      { ...form, _id: 'p' + (Date.now()), discountRate: Number(form.discountRate), minimumBadges: Number(form.minimumBadges) }
+    ]);
+    handleClose();
+  };
+  const handleDelete = (id) => setPartnerStores(prev => prev.filter(s => s._id !== id));
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
@@ -112,15 +131,40 @@ function MyPage({ loggedIn, nickname }) {
       </Grid>
       {/* 제휴 상점/할인 안내 */}
       <Divider sx={{ my: 4 }} />
-      <Typography variant="h5" gutterBottom>
-        제휴 상점 & 할인 혜택
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+        <Typography variant="h5">
+          제휴 상점 & 할인 혜택
+        </Typography>
+        <Button variant="outlined" size="small" onClick={handleOpen}>
+          제휴점 등록
+        </Button>
+      </Stack>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>제휴점 등록</DialogTitle>
+        <DialogContent>
+          <TextField label="상점명" name="name" value={form.name} onChange={handleChange} fullWidth sx={{ mb: 2 }} />
+          <TextField label="카테고리" name="category" value={form.category} onChange={handleChange} fullWidth sx={{ mb: 2 }} />
+          <TextField label="연락처" name="contact" value={form.contact} onChange={handleChange} fullWidth sx={{ mb: 2 }} />
+          <TextField label="할인율(%)" name="discountRate" value={form.discountRate} onChange={handleChange} type="number" fullWidth sx={{ mb: 2 }} />
+          <TextField label="최소 배지 개수" name="minimumBadges" value={form.minimumBadges} onChange={handleChange} type="number" fullWidth />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>취소</Button>
+          <Button onClick={handleAdd} variant="contained">등록</Button>
+        </DialogActions>
+      </Dialog>
       <Typography variant="subtitle1" sx={{ mb: 2 }}>
         내 배지 개수: <b>{badges.length}개</b> → <Chip label={discount.desc} color={discount.rate > 0 ? 'success' : 'default'} size="small" />
       </Typography>
       <List>
         {partnerStores.map((store) => (
-          <ListItem key={store._id} sx={{ mb: 1, border: '1px solid #eee', borderRadius: 2 }}>
+          <ListItem key={store._id} sx={{ mb: 1, border: '1px solid #eee', borderRadius: 2 }}
+            secondaryAction={
+              <IconButton edge="end" aria-label="delete" onClick={() => handleDelete(store._id)}>
+                <DeleteIcon />
+              </IconButton>
+            }
+          >
             <ListItemText
               primary={store.name + ' (' + store.category + ')'}
               secondary={`최소 배지 ${store.minimumBadges}개 → ${store.discountRate}% 할인 | 문의: ${store.contact}`}
