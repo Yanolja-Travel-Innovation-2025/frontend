@@ -4,6 +4,7 @@ import { Button, CircularProgress, Typography, Box, Card, CardContent, Grid, Chi
 import { useBadges } from '../BadgeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
+import QRScanner from '../components/QRScanner';
 
 // 제주도 관광지 좌표 (실제 배지 위치)
 const BADGE_LOCATIONS = {
@@ -33,10 +34,12 @@ function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
 function HomePage() {
   const { allBadges, myBadges, issueBadge, loading: badgeLoading } = useBadges();
   const { isLoggedIn } = useAuth();
-  const { showWarning } = useNotification();
+  const { showWarning, showSuccess, showError } = useNotification();
   const [userPos, setUserPos] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [currentBadge, setCurrentBadge] = useState(null);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -86,13 +89,37 @@ function HomePage() {
 
   const availableBadges = getAvailableBadges();
 
-  const handleGetBadge = async (badgeId) => {
+  const handleGetBadge = (badge) => {
     if (!isLoggedIn) {
       showWarning('배지를 획득하려면 로그인이 필요합니다.');
       return;
     }
     
-    await issueBadge(badgeId);
+    setCurrentBadge(badge);
+    setQrScannerOpen(true);
+  };
+
+  const handleQRScan = async (qrData) => {
+    if (!currentBadge) return;
+    
+    try {
+      // QR 코드가 해당 배지의 QR 코드와 일치하는지 확인
+      if (qrData === currentBadge.location.qrCode) {
+        await issueBadge(currentBadge._id);
+        showSuccess(`${currentBadge.name} 배지를 획득했습니다!`);
+      } else {
+        showError('올바른 QR 코드가 아닙니다.');
+      }
+    } catch (error) {
+      showError('배지 발급 중 오류가 발생했습니다.');
+    } finally {
+      setCurrentBadge(null);
+    }
+  };
+
+  const handleQRScanClose = () => {
+    setQrScannerOpen(false);
+    setCurrentBadge(null);
   };
 
   return (
@@ -193,7 +220,7 @@ function HomePage() {
                             variant="contained"
                             color="success"
                             fullWidth
-                            onClick={() => handleGetBadge(badge._id)}
+                            onClick={() => handleGetBadge(badge)}
                             disabled={badgeLoading}
                             startIcon={badgeLoading ? <CircularProgress size={20} /> : null}
                           >
@@ -229,6 +256,14 @@ function HomePage() {
           </Box>
         </>
       )}
+
+      {/* QR 스캐너 컴포넌트 */}
+      <QRScanner
+        open={qrScannerOpen}
+        onClose={handleQRScanClose}
+        onScan={handleQRScan}
+        expectedQRCode={currentBadge?.location?.qrCode}
+      />
     </div>
   );
 }
