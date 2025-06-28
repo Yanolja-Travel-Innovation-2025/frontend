@@ -10,14 +10,18 @@ import { BadgeProvider } from './BadgeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PartnerProvider } from './contexts/PartnerContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { WalletProvider, useWallet } from './contexts/WalletContext';
 import AuthDialog from './components/AuthDialog';
+import WalletConnect from './components/WalletConnect';
 
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isLoggedIn } = useAuth();
+  const { wallet } = useWallet();
   
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
+  const [walletDialogOpen, setWalletDialogOpen] = useState(false);
 
   // Get current value from path for BottomNavigation
   const getCurrentNavValue = (pathname) => {
@@ -53,6 +57,18 @@ function AppContent() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             디지털 관광 여권
           </Typography>
+          
+          {/* 지갑 연결 버튼 */}
+          {isLoggedIn && (
+            <Button 
+              color="inherit" 
+              onClick={() => setWalletDialogOpen(true)}
+              sx={{ mr: 1 }}
+            >
+              {wallet.isConnected ? '🔗 지갑 연결됨' : '👛 지갑 연결'}
+            </Button>
+          )}
+          
           {isLoggedIn ? (
             <Button color="inherit" onClick={handleLogout}>
               로그아웃 ({user?.nickname})
@@ -68,6 +84,11 @@ function AppContent() {
       <AuthDialog 
         open={authDialogOpen} 
         onClose={() => setAuthDialogOpen(false)} 
+      />
+      
+      <WalletConnect
+        open={walletDialogOpen}
+        onClose={() => setWalletDialogOpen(false)}
       />
       
       {/* Add Toolbar to create space for fixed AppBar */}
@@ -98,11 +119,13 @@ function App() {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <BadgeProvider>
-          <PartnerProvider>
-            <AppContent />
-          </PartnerProvider>
-        </BadgeProvider>
+        <WalletProvider>
+          <BadgeProvider>
+            <PartnerProvider>
+              <AppContent />
+            </PartnerProvider>
+          </BadgeProvider>
+        </WalletProvider>
       </NotificationProvider>
     </AuthProvider>
   );

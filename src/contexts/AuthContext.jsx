@@ -71,6 +71,11 @@ export function AuthProvider({ children }) {
     setError(null);
   };
 
+  // 사용자 정보 업데이트
+  const updateUser = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   // 에러 초기화
   const clearError = () => setError(null);
 
@@ -81,6 +86,7 @@ export function AuthProvider({ children }) {
     register,
     login,
     logout,
+    updateUser,
     clearError,
     isLoggedIn: !!user,
   };
