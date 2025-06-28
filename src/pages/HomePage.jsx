@@ -6,13 +6,23 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import QRScanner from '../components/QRScanner';
 
-// 제주도 관광지 좌표 (실제 배지 위치)
+// 제주도 관광지 좌표 (실제 배지 위치) - 15개 확장
 const BADGE_LOCATIONS = {
   'HALLASAN_SUMMIT_2024': { lat: 33.3617, lng: 126.5312, name: '한라산 백록담' },
   'SEONGSAN_SUNRISE_2024': { lat: 33.4584, lng: 126.9423, name: '성산일출봉' },
   'UDO_LIGHTHOUSE_2024': { lat: 33.5064, lng: 126.9502, name: '우도 등대' },
   'HYEOPJAE_BEACH_2024': { lat: 33.3939, lng: 126.2394, name: '협재해수욕장' },
   'OLLE_TRAIL_7_2024': { lat: 33.2450, lng: 126.2654, name: '올레길 7코스' },
+  'JEONGBANG_WATERFALL_2024': { lat: 33.2444, lng: 126.8547, name: '정방폭포' },
+  'CHEONJIYEON_WATERFALL_2024': { lat: 33.2471, lng: 126.5570, name: '천지연폭포' },
+  'MANJANGGUL_CAVE_2024': { lat: 33.5270, lng: 126.7715, name: '만장굴' },
+  'YONGDUAM_ROCK_2024': { lat: 33.5157, lng: 126.5096, name: '용두암' },
+  'SEOPJIKOJI_2024': { lat: 33.4244, lng: 126.9309, name: '섭지코지' },
+  'GWAKJI_BEACH_2024': { lat: 33.4503, lng: 126.3040, name: '곽지해수욕장' },
+  'OSULLOC_MUSEUM_2024': { lat: 33.3065, lng: 126.2890, name: '오설록 티뮤지엄' },
+  'HALLASAN_YEONGSIL_2024': { lat: 33.3520, lng: 126.4982, name: '한라산 영실휴게소' },
+  'BIJARIM_FOREST_2024': { lat: 33.4880, lng: 126.8069, name: '비자림' },
+  'JUNGMUN_RESORT_2024': { lat: 33.2394, lng: 126.4123, name: '중문관광단지' },
 };
 
 const JEJU_CENTER = { lat: 33.4996, lng: 126.5312 };
